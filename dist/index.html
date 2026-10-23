@@ -182,12 +182,12 @@
     .header-cta, .button, .menu-toggle, .tab, .schedule-panel, .day, .notice, .retailer, .sku-image, .form input, .form textarea { border-radius:12px; }
     .header-cta, .button, .tab { transition:transform .2s ease, background-color .2s ease, color .2s ease; }
     .header-cta:hover, .button:hover, .tab:hover { transform:translateY(-2px); }
-    .section-head, .hero-copy, .pack-stage, .mechanism, .schedule-panel, .faq, .sku-card, .article-card { animation:fade-up .55s ease both; }
-    .grid-3 > *, .grid-2 > * { animation:fade-up .55s ease both; }
-    .grid-3 > *:nth-child(2), .grid-2 > *:nth-child(2) { animation-delay:.08s; }
-    .grid-3 > *:nth-child(3) { animation-delay:.16s; }
-    .grid-3 > *:nth-child(4) { animation-delay:.24s; }
-    @keyframes fade-up { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+    .reveal-on-scroll { transition:opacity .65s ease, transform .65s ease; }
+    .js .reveal-on-scroll:not(.is-visible) { opacity:0; transform:translateY(24px); }
+    .reveal-on-scroll.is-visible { opacity:1; transform:none; }
+    .grid-3 > .reveal-on-scroll:nth-child(2), .grid-2 > .reveal-on-scroll:nth-child(2) { transition-delay:.08s; }
+    .grid-3 > .reveal-on-scroll:nth-child(3) { transition-delay:.16s; }
+    .grid-3 > .reveal-on-scroll:nth-child(4) { transition-delay:.24s; }
     @media (prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } *, *::before, *::after { animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; } }
   </style>
 </head>
@@ -359,6 +359,7 @@
   <script>
     (() => {
       'use strict';
+      document.body.classList.add('js');
       const articles = [
         {slug:'about-medicine', title:'Грипп и ОРВИ: что важно знать', intro:'Коротко о лечении, профилактике и безопасном применении.', excerpt:'Чем отличаются лечение и профилактика гриппа и ОРВИ.', sections:[
           {heading:'Начните с показаний', text:'Тилорам применяют у взрослых для лечения гриппа и других ОРВИ, а также герпетической инфекции в составе комплексной терапии. Для профилактики гриппа и других ОРВИ в инструкции приведена отдельная схема.'},
@@ -411,6 +412,21 @@
       window.addEventListener('hashchange',route);
       document.addEventListener('click',e=>{ const a=e.target.closest('a[href^="#/"]'); if(a && a.hash===location.hash) route(); });
       route();
+      const revealSelector = '.hero-copy, .pack-stage, .section-head, .grid-3 > *, .grid-2 > *, .mechanism, .schedule-panel, .faq, .sku-card, .article-card, .article-body, .instruction-list, .notice';
+      const revealItems = [...document.querySelectorAll(revealSelector)];
+      const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (!('IntersectionObserver' in window) || reducedMotion) {
+        revealItems.forEach(item => item.classList.add('is-visible'));
+      } else {
+        const revealObserver = new IntersectionObserver(entries => {
+          entries.forEach(entry => {
+            if (!entry.isIntersecting) return;
+            entry.target.classList.add('is-visible');
+            revealObserver.unobserve(entry.target);
+          });
+        }, { threshold:.14, rootMargin:'0px 0px -40px' });
+        revealItems.forEach(item => { item.classList.add('reveal-on-scroll'); revealObserver.observe(item); });
+      }
       const tabs=[...document.querySelectorAll('[role="tab"]')];
       function selectTab(tab,focus=false){ tabs.forEach(t=>{ const active=t===tab; t.setAttribute('aria-selected',String(active)); t.tabIndex=active?0:-1; document.getElementById(t.getAttribute('aria-controls')).hidden=!active; }); if(focus)tab.focus(); }
       tabs.forEach((tab,index)=>{ tab.addEventListener('click',()=>selectTab(tab)); tab.addEventListener('keydown',e=>{ let next=null; if(e.key==='ArrowRight')next=tabs[(index+1)%tabs.length]; if(e.key==='ArrowLeft')next=tabs[(index-1+tabs.length)%tabs.length]; if(e.key==='Home')next=tabs[0]; if(e.key==='End')next=tabs[tabs.length-1]; if(next){e.preventDefault();selectTab(next,true);} }); });
